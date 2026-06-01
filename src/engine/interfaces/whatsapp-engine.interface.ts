@@ -239,7 +239,7 @@ export interface IWhatsAppEngine {
   // Contacts
   getContacts(): Promise<Contact[]>;
   getContactById(contactId: string): Promise<Contact | null>;
-  checkNumberExists(number: string): Promise<boolean>;
+  checkNumberExists(number: string): Promise<string | null>;
 
   // Groups - Basic
   getGroups(): Promise<Group[]>;
