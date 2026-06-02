@@ -15,18 +15,16 @@ RUN apt-get update && apt-get install -y \
 
 # Copy package files (root + dashboard for npm ci)
 COPY package*.json ./
-COPY dashboard/package*.json ./dashboard/
+COPY dashboard/package.json dashboard/package-lock.json ./dashboard/
 
-# Install API and dashboard dependencies
+# Install API (+ postinstall installs dashboard deps)
 RUN npm ci
-RUN npm ci --prefix dashboard
 
 # Copy source code
 COPY . .
 
 # Build API + dashboard UI (served at /dashboard/)
-RUN npm run build
-RUN npm run dashboard:build
+RUN npm run build && npm run dashboard:build
 
 # ===== Stage 2: Production =====
 FROM node:22-slim AS production
