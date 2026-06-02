@@ -13,11 +13,13 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files
+# Copy package files (root + dashboard for npm ci)
 COPY package*.json ./
+COPY dashboard/package*.json ./dashboard/
 
-# Install all dependencies (including devDependencies for build)
+# Install API and dashboard dependencies
 RUN npm ci
+RUN npm ci --prefix dashboard
 
 # Copy source code
 COPY . .

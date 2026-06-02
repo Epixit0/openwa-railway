@@ -76,12 +76,11 @@ function mountDashboard(app: NestExpressApplication): void {
 
   const http = app.getHttpAdapter().getInstance() as express.Application;
 
-  http.use('/dashboard', express.static(dashboardDir));
-  http.get(/^\/dashboard\/?.*$/, (req: Request, res: Response, next: NextFunction) => {
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      next();
-      return;
-    }
+  http.use('/dashboard', express.static(dashboardDir, { index: false }));
+  http.get('/dashboard', (_req: Request, res: Response) => {
+    res.redirect(301, '/dashboard/');
+  });
+  http.get('/dashboard/*', (req: Request, res: Response, next: NextFunction) => {
     if (req.path.includes('.') && !req.path.endsWith('/')) {
       next();
       return;
