@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as express from 'express';
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
@@ -75,14 +75,22 @@ function mountDashboard(app: NestExpressApplication): void {
   }
 
   const http = app.getHttpAdapter().getInstance() as express.Application;
+  // Railway termina TLS delante del contenedor; evita bucles de redirect
+  http.set('trust proxy', 1);
 
-  http.use('/dashboard', express.static(dashboardDir, { index: false }));
-  http.get('/dashboard', (_req: Request, res: Response) => {
-    res.redirect(301, '/dashboard/');
-  });
-  http.get('/dashboard/*path', (req: Request, res: Response, next: NextFunction) => {
-    if (req.path.includes('.') && !req.path.endsWith('/')) {
-      next();
+  // redirect: false — sin esto Express y el proxy de Railway hacen ERR_TOO_MANY_REDIRECTS
+  http.use(
+    '/dashboard',
+    express.static(dashboardDir, {
+      redirect: false,
+      index: 'index.html',
+    }),
+  );
+
+  // Rutas del SPA (sessions, webhooks, etc.)
+  http.use('/dashboard', (req: Request, res: Response) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      res.status(405).end();
       return;
     }
     res.sendFile(indexHtml);
