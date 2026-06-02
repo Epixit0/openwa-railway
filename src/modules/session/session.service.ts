@@ -68,6 +68,26 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
         affected: result.affected,
       });
     }
+
+    if (process.env.SESSION_AUTO_START === 'true') {
+      const sessions = await this.sessionRepository.find();
+      for (const session of sessions) {
+        if (this.engines.has(session.id)) continue;
+        try {
+          this.logger.log(`Auto-starting session: ${session.name}`, {
+            sessionId: session.id,
+            action: 'auto_start',
+          });
+          await this.start(session.id);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.logger.warn(`Auto-start failed for ${session.name}: ${message}`, {
+            sessionId: session.id,
+            action: 'auto_start_failed',
+          });
+        }
+      }
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
