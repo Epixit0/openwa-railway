@@ -1,35 +1,41 @@
-# OpenWA - Dockerfile
-# Multi-stage build for production-ready image
+# OpenWA - Dockerfile (pasos separados para ver el error en Railway)
 
 # ===== Stage 1: Builder =====
 FROM node:22-slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files (root + dashboard for npm ci)
 COPY package*.json ./
-COPY dashboard/package.json dashboard/package-lock.json ./dashboard/
+COPY dashboard/package.json dashboard/package-lock.json dashboard/.npmrc ./dashboard/
 
-# Install API (+ postinstall installs dashboard deps)
-RUN npm ci
+# Sin postinstall: el script del root falla en silencio por peer deps del dashboard
+RUN echo ">>> STEP: npm ci (API)" && npm ci --ignore-scripts
 
-# Copy source code
+RUN echo ">>> STEP: npm ci (dashboard)" && npm ci --prefix dashboard
+
+RUN test -f dashboard/node_modules/vite/package.json && \
+    echo "OK: vite instalado en dashboard/node_modules"
+
 COPY . .
 
-# Build API + dashboard UI (served at /dashboard/)
-RUN npm run build && npm run dashboard:build
+RUN echo ">>> STEP: npm run build (API NestJS)" && npm run build
+
+RUN echo ">>> STEP: npm run dashboard:build (UI)" && npm run dashboard:build
+
+RUN echo ">>> STEP: verificar archivos generados" && \
+    test -f dist/main.js && \
+    test -f dashboard/dist/index.html && \
+    echo "OK: dist/main.js y dashboard/dist/index.html existen"
 
 # ===== Stage 2: Production =====
 FROM node:22-slim AS production
 
-# Install Chrome/Chromium and required dependencies
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
@@ -52,40 +58,27 @@ RUN apt-get update && apt-get install -y \
     dumb-init \
     && rm -rf /var/lib/apt/lists/*
 
-# Set Chrome executable path for Puppeteer
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-# Create app user for security
-RUN groupadd -r openwa && useradd -r -g openwa openwa
-
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --omit=dev && npm cache clean --force
+RUN echo ">>> STEP: npm ci production" && npm ci --omit=dev && npm cache clean --force
 
-# Copy built application from builder stage
+RUN echo ">>> STEP: copiar API compilada"
 COPY --from=builder /app/dist ./dist
+
+RUN echo ">>> STEP: copiar dashboard compilado"
 COPY --from=builder /app/dashboard/dist ./public/dashboard
 
-# Create data directories with proper permissions
-RUN mkdir -p ./data/sessions ./data/media && \
-    chown -R openwa:openwa /app
+RUN mkdir -p ./data/sessions ./data/media
 
-# Note: Running as root to allow Docker socket access for orchestration
-# For production with stricter security, consider using a Docker socket proxy
-# USER openwa
-
-# Expose port
 EXPOSE 2785
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD node -e "require('http').get('http://localhost:2785/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
-# Start with dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/main"]
