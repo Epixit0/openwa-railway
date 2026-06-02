@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
@@ -73,8 +74,10 @@ function mountDashboard(app: NestExpressApplication): void {
     return;
   }
 
-  app.use('/dashboard', express.static(dashboardDir));
-  app.get(/^\/dashboard\/?.*$/, (req, res, next) => {
+  const http = app.getHttpAdapter().getInstance() as express.Application;
+
+  http.use('/dashboard', express.static(dashboardDir));
+  http.get(/^\/dashboard\/?.*$/, (req: Request, res: Response, next: NextFunction) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       next();
       return;
