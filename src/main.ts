@@ -80,7 +80,7 @@ function mountDashboard(app: NestExpressApplication): void {
   http.get('/dashboard', (_req: Request, res: Response) => {
     res.redirect(301, '/dashboard/');
   });
-  http.get('/dashboard/*', (req: Request, res: Response, next: NextFunction) => {
+  http.get('/dashboard/*path', (req: Request, res: Response, next: NextFunction) => {
     if (req.path.includes('.') && !req.path.endsWith('/')) {
       next();
       return;
