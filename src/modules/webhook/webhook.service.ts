@@ -153,6 +153,9 @@ export class WebhookService {
   }
 
   async dispatch(sessionId: string, event: string, data: Record<string, unknown>): Promise<void> {
+    if (event === 'message.received' && data?.fromMe === true) {
+      return;
+    }
     const webhooks = await this.webhookRepository.find({
       where: { sessionId, active: true },
     });

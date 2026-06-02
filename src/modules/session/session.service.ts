@@ -283,6 +283,9 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
         });
       },
       onMessage: (message): void => {
+        if (message.fromMe) {
+          return;
+        }
         this.logger.debug(`Message received from ${message.from}`, {
           sessionId: id,
           messageId: message.id,
