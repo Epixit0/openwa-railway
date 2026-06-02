@@ -27,9 +27,18 @@ La sesión anterior estaba en el disco **temporal** del contenedor y se borró.
 
 Sube estos cambios del repo OpenWA a GitHub y deja que Railway redeploye.
 
+## Dashboard web (UI)
+
+Después de desplegar el código con dashboard integrado:
+
+- **UI:** `https://openwa-railway-production.up.railway.app/dashboard/`
+- **API docs:** `https://openwa-railway-production.up.railway.app/api/docs`
+
+Login del dashboard: tu `API_MASTER_KEY` (ej. `dev-admin-key`).
+
 ## Paso 4 — Una vez después del deploy
 
-1. Abre el dashboard de OpenWA
+1. Abre `https://TU-URL/dashboard/` (o el dashboard local si aún no desplegaste)
 2. **Start** en tu sesión (o espera ~1 min si `SESSION_AUTO_START=true`)
 3. Si pide QR → escanéalo **esta última vez**
 4. Copia el **ID** de la sesión (UUID) a Vercel: `OPENWA_SESSION_ID=...`

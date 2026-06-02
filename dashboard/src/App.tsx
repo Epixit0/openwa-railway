@@ -95,7 +95,7 @@ function AppContent() {
 
   return (
     <ToastProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
         <Suspense fallback={loadingFallback}>
         <Routes>
           <Route path="/" element={<Layout onLogout={handleLogout} userRole={role} />}>

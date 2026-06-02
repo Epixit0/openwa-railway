@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Servido desde la API en Railway: https://tu-dominio/dashboard/
+  base: process.env.VITE_BASE_PATH || '/dashboard/',
   plugins: [react()],
   appType: 'spa', // Enable SPA fallback for client-side routing
   define: {

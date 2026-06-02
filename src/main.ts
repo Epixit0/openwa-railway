@@ -1,4 +1,6 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import * as express from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
@@ -64,8 +66,29 @@ STORAGE_PATH=./data/media
   dotenv.config({ path: generatedEnvPath, override: false });
 }
 
+function mountDashboard(app: NestExpressApplication): void {
+  const dashboardDir = path.join(__dirname, '..', 'public', 'dashboard');
+  const indexHtml = path.join(dashboardDir, 'index.html');
+  if (!fs.existsSync(indexHtml)) {
+    return;
+  }
+
+  app.use('/dashboard', express.static(dashboardDir));
+  app.get(/^\/dashboard\/?.*$/, (req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      next();
+      return;
+    }
+    if (req.path.includes('.') && !req.path.endsWith('/')) {
+      next();
+      return;
+    }
+    res.sendFile(indexHtml);
+  });
+}
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Enable shutdown hooks for graceful shutdown
   app.enableShutdownHooks();
@@ -159,11 +182,16 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
+  mountDashboard(app);
+
   const port = process.env.PORT || 2785;
   await app.listen(port);
 
   console.log(`🚀 OpenWA is running on: http://localhost:${port}`);
   console.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
+  if (fs.existsSync(path.join(__dirname, '..', 'public', 'dashboard', 'index.html'))) {
+    console.log(`📊 Dashboard UI: http://localhost:${port}/dashboard/`);
+  }
 }
 
 void bootstrap();
